@@ -10,7 +10,7 @@
 
 # When other libraries are using a shared version of runtime libraries,
 # Google Test also has to use one.
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.16)
 
 if (POLICY CMP0048)
   cmake_policy(SET CMP0048 NEW)
@@ -19,7 +19,7 @@ endif (POLICY CMP0048)
 project(googletest-distribution)
 set(GOOGLETEST_VERSION 1.11.0)
 
-if (CMAKE_VERSION VERSION_GREATER "3.0.2")
+if (CMAKE_VERSION VERSION_GREATER "3.16")
   if(NOT CYGWIN AND NOT MSYS AND NOT ${CMAKE_SYSTEM_NAME} STREQUAL QNX)
     set(CMAKE_CXX_EXTENSIONS OFF)
   endif()
@@ -76,7 +76,7 @@ else()
   cmake_policy(SET CMP0048 NEW)
   project(gtest VERSION ${GOOGLETEST_VERSION} LANGUAGES CXX C)
 endif()
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.16)
 
 if (POLICY CMP0063) # Visibility
   cmake_policy(SET CMP0063 NEW)
