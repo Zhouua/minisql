@@ -1,4 +1,4 @@
-#include "buffer/buffer_pool_manager.h"
+#include "../include/buffer/buffer_pool_manager.h"
 
 #include "glog/logging.h"
 #include "page/bitmap_page.h"
@@ -23,6 +23,7 @@ BufferPoolManager::~BufferPoolManager() {
 }
 
 /**
+ * 根据逻辑页号获取对应的数据页，如果该数据页不在内存中，则需要从磁盘中进行读取
  * TODO: Student Implement
  */
 Page *BufferPoolManager::FetchPage(page_id_t page_id) {
@@ -33,10 +34,12 @@ Page *BufferPoolManager::FetchPage(page_id_t page_id) {
   // 2.     If R is dirty, write it back to the disk.
   // 3.     Delete R from the page table and insert P.
   // 4.     Update P's metadata, read in the page content from disk, and then return a pointer to P.
+  
   return nullptr;
 }
 
 /**
+ * 分配一个新的数据页，并将逻辑页号于page_id中返回
  * TODO: Student Implement
  */
 Page *BufferPoolManager::NewPage(page_id_t &page_id) {
@@ -61,6 +64,7 @@ bool BufferPoolManager::DeletePage(page_id_t page_id) {
 }
 
 /**
+ * 取消固定一个数据页
  * TODO: Student Implement
  */
 bool BufferPoolManager::UnpinPage(page_id_t page_id, bool is_dirty) {
@@ -68,9 +72,18 @@ bool BufferPoolManager::UnpinPage(page_id_t page_id, bool is_dirty) {
 }
 
 /**
+ * 将数据页转储到磁盘中
  * TODO: Student Implement
  */
 bool BufferPoolManager::FlushPage(page_id_t page_id) {
+  return false;
+}
+
+/**
+ * 将所有的页面都转储到磁盘中
+ * TODO: Student Implement
+*/
+bool BufferPoolManager::FlushAllPages() {
   return false;
 }
 

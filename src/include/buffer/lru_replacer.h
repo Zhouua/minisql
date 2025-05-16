@@ -6,7 +6,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "buffer/replacer.h"
+#include "replacer.h"
 #include "common/config.h"
 
 using namespace std;
@@ -35,8 +35,10 @@ class LRUReplacer : public Replacer {
 
   size_t Size() override;
 
-private:
+  private:
   // add your own private member variables here
+  list<frame_id_t> lru_list_; // 队列，记录最近使用的页面
+  size_t Replace_Size; // 最多缓存的页面数
 };
 
 #endif  // MINISQL_LRU_REPLACER_H
