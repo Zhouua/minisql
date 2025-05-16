@@ -1,4 +1,4 @@
-#include "storage/disk_manager.h"
+#include "../include/storage/disk_manager.h"
 
 #include <sys/stat.h>
 
@@ -48,32 +48,89 @@ void DiskManager::WritePage(page_id_t logical_page_id, const char *page_data) {
 }
 
 /**
+ * 从磁盘中分配一个空闲页，并返回空闲页的逻辑页号
  * TODO: Student Implement
  */
 page_id_t DiskManager::AllocatePage() {
-  ASSERT(false, "Not implemented yet.");
+  DiskFileMetaPage *meta_page_ = reinterpret_cast<DiskFileMetaPage *>(meta_data_); // 获取元数据页
+  bool flag = false;
+  uint32_t extent_id;
+  for (uint32_t i = 0; i < meta_page_->GetExtentNums(); i++) {
+    // 遍历所有extent查看是否有空页
+    if (meta_page_->GetExtentUsedPage(i) < BITMAP_SIZE) {
+      // 找到有空闲页的extent
+      flag = true;
+      extent_id = i;
+      break;
+    }
+  }
+  if (!flag) {
+    // 说明没有空闲页的extent，需要新加一个
+    if (meta_page_->GetExtentNums() == PAGE_SIZE - 8) {
+      // 磁盘已经满了，-8是因为metapage占用一个页
+      return INVALID_PAGE_ID;
+    }
+    extent_id = meta_page_->GetExtentNums(); // 新增一个extent
+    meta_page_->num_extents_ += 1; // 更新extent数量
+    meta_page_->extent_used_page_[extent_id] = 0; // 初始化对应extent的空闲页数
+  }
+  char bitmap_page_data[PAGE_SIZE]; // bitmap数据
+  ReadPhysicalPage(1 + extent_id * (1 + BITMAP_SIZE), bitmap_page_data); // 读入bitmap数据，第一页为meta，每个extent有1+BITMAP_SIZE页
+  BitmapPage<PAGE_SIZE> *bitmap_page = reinterpret_cast<BitmapPage<PAGE_SIZE> *>(bitmap_page_data);
+  for (uint32_t i = 0; i < bitmap_page->GetMaxSupportedSize(); i++) {
+    if (bitmap_page->IsPageFree(i)) {
+      // 找到空闲页
+      bitmap_page->AllocatePage(i); // 设置bitmap
+      meta_page_->num_allocated_pages_ += 1; // 更新已分配页数
+      meta_page_->extent_used_page_[extent_id] += 1; // 更新extent已分配页数
+      WritePhysicalPage(1 + extent_id * (1 + BITMAP_SIZE), bitmap_page_data);
+      return extent_id * BITMAP_SIZE + i; // 返回逻辑页号
+    }
+  }
   return INVALID_PAGE_ID;
 }
 
 /**
+ * 释放磁盘中逻辑页号对应的物理页
  * TODO: Student Implement
  */
 void DiskManager::DeAllocatePage(page_id_t logical_page_id) {
-  ASSERT(false, "Not implemented yet.");
+  if (IsPageFree(logical_page_id)) {
+    // 已经空了
+    return;
+  }
+  char bitmap_page_data[PAGE_SIZE];
+  ReadPhysicalPage(1 + logical_page_id / BITMAP_SIZE * (BITMAP_SIZE + 1), bitmap_page_data);
+  BitmapPage<PAGE_SIZE> *bitmap_page = reinterpret_cast<BitmapPage<PAGE_SIZE> *>(bitmap_page_data); // 获取对应bitmap
+  bitmap_page->DeAllocatePage(logical_page_id % BITMAP_SIZE); // 释放该页
+  DiskFileMetaPage *meta_page = reinterpret_cast<DiskFileMetaPage *>(meta_data_);
+  meta_page->num_allocated_pages_ -= 1; // 更新已分配页数
+  meta_page->extent_used_page_[logical_page_id / BITMAP_SIZE] -= 1;
 }
 
 /**
+ * 判断该逻辑页号对应的数据页是否空闲
  * TODO: Student Implement
  */
 bool DiskManager::IsPageFree(page_id_t logical_page_id) {
-  return false;
+  char bitmap_page_data[PAGE_SIZE];
+  page_id_t bimap_page_id = 1 + logical_page_id / BITMAP_SIZE * (BITMAP_SIZE + 1); // 获取bitmap物理页号
+  ReadPhysicalPage(bimap_page_id, bitmap_page_data); // 读入bitmap数据
+  BitmapPage<PAGE_SIZE> *bitmap_page = reinterpret_cast<BitmapPage<PAGE_SIZE> *>(bitmap_page_data); // 没有构造函数，使用reinterpret_cast
+  return bitmap_page->IsPageFree(logical_page_id % BITMAP_SIZE);
 }
 
 /**
+ * 用于将逻辑页号转换成物理页号
  * TODO: Student Implement
  */
 page_id_t DiskManager::MapPageId(page_id_t logical_page_id) {
-  return 0;
+  // Disk page storage format: (Free Page BitMap Size = PAGE_SIZE * 8, we note it as N)
+  // | Meta Page | Free Page BitMap 1 | Page 1 | Page 2 | ....
+  // | Page N | Free Page BitMap 2 | Page N+1 | ... | Page 2N | ... |
+  page_id_t extent_id = logical_page_id / BITMAP_SIZE; 
+  page_id_t page_id = logical_page_id % BITMAP_SIZE;
+  return extent_id * (BITMAP_SIZE + 1) + 1 + page_id + 1; // N个为1组，1组实际为N+1个页，0为元数据，每个extent第一个为bitmapPage
 }
 
 int DiskManager::GetFileSize(const std::string &file_name) {
