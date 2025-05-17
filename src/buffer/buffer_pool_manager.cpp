@@ -34,8 +34,39 @@ Page *BufferPoolManager::FetchPage(page_id_t page_id) {
   // 2.     If R is dirty, write it back to the disk.
   // 3.     Delete R from the page table and insert P.
   // 4.     Update P's metadata, read in the page content from disk, and then return a pointer to P.
-  
-  return nullptr;
+  if (page_table_.find(page_id) != page_table_.end()) {
+    replacer_->Pin(page_table_[page_id]);
+    Page *P = pages_ + page_table_[page_id]; // requested page P
+    P->pin_count_ += 1;  // 增加被pin的数量
+    return P;
+  } else {
+    frame_id_t frame_id;
+    Page *R;
+    if (free_list_.empty()) {
+      // free_list_为空，需要从replacer中找一个替换
+      if (!replacer_->Victim(&frame_id)) {
+        return nullptr;
+      }
+    } else {
+      // free_list_不为空，从free_list中找一个替换
+      frame_id = free_list_.front();
+      free_list_.pop_front();
+    }
+    R = pages_ + frame_id;
+    if (R->is_dirty_) {
+      // 如果被替换的页面是dirty的，则需要写回磁盘
+      disk_manager_->WritePage(R->GetPageId(), R->GetData());
+    }
+    page_table_.erase(R->GetPageId()); // 删除R
+    page_table_[page_id] = frame_id; // 插入P
+    disk_manager_->ReadPage(page_id, R->data_); // 从磁盘读入P
+    // 更新P的metadata
+    R->page_id_ = page_id;
+    R->pin_count_ = 1;
+    R->is_dirty_ = false;
+    replacer_->Pin(frame_id);
+    return R;
+  }
 }
 
 /**
@@ -48,7 +79,39 @@ Page *BufferPoolManager::NewPage(page_id_t &page_id) {
   // 2.   Pick a victim page P from either the free list or the replacer. Always pick from the free list first.
   // 3.   Update P's metadata, zero out memory and add P to the page table.
   // 4.   Set the page ID output parameter. Return a pointer to P.
-  return nullptr;
+  int flag = false; // flag为false当所有页面都被pin时，返回nullptr
+  for (uint32_t i = 0; i < pool_size_; i++) {
+    if (pages_[i].GetPinCount() == 0) {
+      flag = true;
+      break;
+    }
+  }
+  if (!flag) return nullptr;
+  Page *P;
+  frame_id_t frame_id;
+  if (free_list_.empty()) {
+    // free_list为空，从replacer中获取Victim页
+    if (!replacer_->Victim(&frame_id)) {
+      return nullptr;
+    }
+  } else {
+    // free_list不为空，从free_list中获取Victim页
+    frame_id = free_list_.front();
+    free_list_.pop_front();
+  }
+  P = pages_ + frame_id;
+  if (P->is_dirty_) {
+    // 将脏页写入磁盘
+    disk_manager_->WritePage(P->page_id_, P->GetData());
+    P->is_dirty_ = false;
+  }
+  page_table_.erase(P->page_id_);
+  page_id = disk_manager_->AllocatePage();
+  page_table_[page_id] = frame_id;
+  P->page_id_ = page_id;
+  P->pin_count_ += 1;
+  P->is_dirty_ = false;
+  return P;
 }
 
 /**
@@ -60,6 +123,23 @@ bool BufferPoolManager::DeletePage(page_id_t page_id) {
   // 1.   If P does not exist, return true.
   // 2.   If P exists, but has a non-zero pin-count, return false. Someone is using the page.
   // 3.   Otherwise, P can be deleted. Remove P from the page table, reset its metadata and return it to the free list.
+  if (page_table_.find(page_id) == page_table_.end()) {
+    // P 不存在
+    return true;
+  } else {
+    // P 存在
+    Page *P = pages_ + page_table_[page_id];
+    if (P->GetPinCount() != 0) {
+      // P 被固定
+      return false;
+    } else {
+      // P 不被固定
+      page_table_.erase(page_id);
+      DeallocatePage(page_id);
+      free_list_.push_back(page_table_[page_id]);
+      return true;
+    }
+  }
   return false;
 }
 
@@ -68,7 +148,22 @@ bool BufferPoolManager::DeletePage(page_id_t page_id) {
  * TODO: Student Implement
  */
 bool BufferPoolManager::UnpinPage(page_id_t page_id, bool is_dirty) {
-  return false;
+  if (page_table_.find(page_id) == page_table_.end()) {
+    // 没有对应数据页
+    return true;
+  } else {
+    Page *P = pages_ + page_table_[page_id];
+    P->is_dirty_ |= is_dirty; // 更新dirty状态
+    if (P->GetPinCount() == 0) {
+      return false;
+    } else {
+      P->pin_count_ -= 1; // pin_count_减一
+    }
+    if (P->GetPinCount() == 0) {
+      replacer_->Unpin(page_table_[page_id]); // 释放
+    }
+    return true;
+  }
 }
 
 /**
@@ -76,15 +171,15 @@ bool BufferPoolManager::UnpinPage(page_id_t page_id, bool is_dirty) {
  * TODO: Student Implement
  */
 bool BufferPoolManager::FlushPage(page_id_t page_id) {
-  return false;
-}
-
-/**
- * 将所有的页面都转储到磁盘中
- * TODO: Student Implement
-*/
-bool BufferPoolManager::FlushAllPages() {
-  return false;
+  if (page_table_.find(page_id) == page_table_.end()) {
+    // 页面不存在
+    return false;
+  } else {
+    Page *P = pages_ + page_table_[page_id];
+    P->is_dirty_  = false;
+    disk_manager_->WritePage(page_id, P->GetData()); // 写入磁盘
+    return true;
+  }
 }
 
 page_id_t BufferPoolManager::AllocatePage() {
