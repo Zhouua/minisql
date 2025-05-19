@@ -1,4 +1,4 @@
-#include "catalog/table.h"
+#include "../include/catalog/table.h"
 
 uint32_t TableMetadata::SerializeTo(char *buf) const {
   char *p = buf;

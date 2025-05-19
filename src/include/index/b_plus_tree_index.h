@@ -1,7 +1,7 @@
 #ifndef MINISQL_B_PLUS_TREE_INDEX_H
 #define MINISQL_B_PLUS_TREE_INDEX_H
 
-#include "index/b_plus_tree.h"
+#include "b_plus_tree.h"
 #include "index/generic_key.h"
 #include "index/index.h"
 

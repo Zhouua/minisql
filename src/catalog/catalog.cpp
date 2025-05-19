@@ -1,5 +1,8 @@
-#include "catalog/catalog.h"
+#include "../include/catalog/catalog.h"
 
+/**
+ * 将CatalogMeta序列化到磁盘中
+*/
 void CatalogMeta::SerializeTo(char *buf) const {
   ASSERT(GetSerializedSize() <= PAGE_SIZE, "Failed to serialize catalog metadata to disk.");
   MACH_WRITE_UINT32(buf, CATALOG_METADATA_MAGIC_NUM);
@@ -22,6 +25,9 @@ void CatalogMeta::SerializeTo(char *buf) const {
   }
 }
 
+/**
+ * 反序列化CatalogMeta
+*/
 CatalogMeta *CatalogMeta::DeserializeFrom(char *buf) {
   // check valid
   uint32_t magic_num = MACH_READ_UINT32(buf);
@@ -52,11 +58,14 @@ CatalogMeta *CatalogMeta::DeserializeFrom(char *buf) {
 }
 
 /**
+ * 返回需要序列化的CatalogMeta的大小
  * TODO: Student Implement
  */
 uint32_t CatalogMeta::GetSerializedSize() const {
-  ASSERT(false, "Not Implemented yet");
-  return 0;
+  // uint32_t: magic_num, table_nums, index_nums
+  // index_id_t: iter->first, iter->second
+  // table_id_t: iter->first, iter->second
+  return 3 * sizeof(uint32_t) + 2 * sizeof(index_id_t) * index_meta_pages_.size() + 2 * sizeof(table_id_t) * table_meta_pages_.size(); 
 }
 
 CatalogMeta::CatalogMeta() {}

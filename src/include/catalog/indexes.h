@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "catalog/table.h"
+#include "table.h"
 #include "common/macros.h"
 #include "common/rowid.h"
 #include "index/b_plus_tree_index.h"
@@ -67,7 +67,11 @@ class IndexInfo {
     // Step1: init index metadata and table info
     // Step2: mapping index key to key schema
     // Step3: call CreateIndex to create the index
-    ASSERT(false, "Not Implemented yet.");
+    meta_data_ = meta_data; // 索引元数据
+    Schema *table_schema = table_info->GetSchema(); // 获取元数据中的schema
+    key_schema_ = Schema::ShallowCopySchema(table_schema, meta_data_->GetKeyMapping()); // 使用浅拷贝避免浪费
+    string index_type = "bptree"; // 没有给对应的index_type，在这里我们使用B+树构建索引
+    index_ = CreateIndex(buffer_pool_manager, index_type);
   }
 
   inline Index *GetIndex() { return index_; }

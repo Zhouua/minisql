@@ -1,4 +1,4 @@
-#include "catalog/indexes.h"
+#include "../include/catalog/indexes.h"
 
 IndexMetadata::IndexMetadata(const index_id_t index_id, const std::string &index_name, const table_id_t table_id,
                              const std::vector<uint32_t> &key_map)
@@ -43,7 +43,11 @@ uint32_t IndexMetadata::SerializeTo(char *buf) const {
  * TODO: Student Implement
  */
 uint32_t IndexMetadata::GetSerializedSize() const {
-  return 0;
+  // uint32_t: magic num, index name的长度, key count
+  // index_id_t: index id
+  // table_id_t: table id
+  // index_name_.length(): index_name_是字符串，所以需要计算字符串的长度
+  return 3 * sizeof(uint32_t) + sizeof(index_id_t) + sizeof(table_id_t) + index_name_.length() + sizeof(uint32_t) * key_map_.size();
 }
 
 uint32_t IndexMetadata::DeserializeFrom(char *buf, IndexMetadata *&index_meta) {
