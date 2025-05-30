@@ -160,7 +160,6 @@ void InternalPage::MoveFirstToEndOf(InternalPage *recipient, GenericKey *middle_
  */
 void InternalPage::CopyLastFrom(GenericKey *key, const page_id_t value, BufferPoolManager *buffer_pool_manager) {
 }
-
 /*
  * Remove the last key & value pair from this page to head of "recipient" page.
  * You need to handle the original dummy key properly, e.g. updating recipient’s array to position the middle_key at the
