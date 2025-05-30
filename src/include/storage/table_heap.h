@@ -12,11 +12,12 @@ class TableHeap {
   friend class TableIterator;
 
  public:
+  //����һ���µı��Ѳ���ʼ����һҳ
   static TableHeap *Create(BufferPoolManager *buffer_pool_manager, Schema *schema, Txn *txn, LogManager *log_manager,
                            LockManager *lock_manager) {
     return new TableHeap(buffer_pool_manager, schema, txn, log_manager, lock_manager);
   }
-
+  //ʹ�����еĵ�һҳ ID ����ʼ������
   static TableHeap *Create(BufferPoolManager *buffer_pool_manager, page_id_t first_page_id, Schema *schema,
                            LogManager *log_manager, LockManager *lock_manager) {
     return new TableHeap(buffer_pool_manager, first_page_id, schema, log_manager, lock_manager);
@@ -71,7 +72,7 @@ class TableHeap {
    */
   bool GetTuple(Row *row, Txn *txn);
 
-  void FreeTableHeap() {
+  void FreeTableHeap() { //�ͷű��ѵ�����ҳ��
     auto next_page_id = first_page_id_;
     while (next_page_id != INVALID_PAGE_ID) {
       auto old_page_id = next_page_id;
@@ -112,8 +113,20 @@ class TableHeap {
       : buffer_pool_manager_(buffer_pool_manager),
         schema_(schema),
         log_manager_(log_manager),
-        lock_manager_(lock_manager) {
-    ASSERT(false, "Not implemented yet.");
+        lock_manager_(lock_manager)
+  {
+    // Initialize the first page
+    Page *first_page = buffer_pool_manager_->NewPage(first_page_id_);
+    if (first_page == nullptr) {
+      throw std::runtime_error("Failed to allocate the first page for the table heap.");
+    }
+
+    // Initialize the table page with the first page
+    auto table_page = reinterpret_cast<TablePage *>(first_page);
+    table_page->Init(first_page_id_, INVALID_PAGE_ID, log_manager_, txn);
+
+    // Unpin the first page after initialization
+    buffer_pool_manager_->UnpinPage(first_page_id_, true);
   };
 
   explicit TableHeap(BufferPoolManager *buffer_pool_manager, page_id_t first_page_id, Schema *schema,
