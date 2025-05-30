@@ -13,8 +13,8 @@ uint32_t Row::SerializeTo(char *buf, Schema *schema) const {
   // Null bitmap
   uint64_t bit = 0, flag = 1;
   for(int i = 0; i < fields_.size(); i++){
-    if(!fields_[i]->IsNull()) bit^=flag; //�ǿ�Ϊ1
-    flag<<=1; //���ƣ�N->0
+    if(!fields_[i]->IsNull()) bit^=flag;
+    flag<<=1; 
   }
   MACH_WRITE_TO(uint64_t, buf+size, bit);
   size += sizeof(uint64_t);

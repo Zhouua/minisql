@@ -2,7 +2,6 @@
 
 #include "glog/logging.h"
 
-/* ������char���� */
 Column::Column(std::string column_name, TypeId type, uint32_t index, bool nullable, bool unique)
     : name_(std::move(column_name)), type_(type), table_ind_(index), nullable_(nullable), unique_(unique) {
   ASSERT(type != TypeId::kTypeChar, "Wrong constructor for CHAR type.");
@@ -18,7 +17,7 @@ Column::Column(std::string column_name, TypeId type, uint32_t index, bool nullab
   }
 }
 
-/* ����char���� */
+
 Column::Column(std::string column_name, TypeId type, uint32_t length, uint32_t index, bool nullable, bool unique)
     : name_(std::move(column_name)),
       type_(type),
@@ -40,10 +39,9 @@ Column::Column(const Column *other)
 /**
 * TODO: Student Implement
 */
-//����ֵΪuint32_t���ͣ�����ʾ�����л��ͷ����л�������bufָ����ǰ�ƽ��˶��ٸ��ֽڡ�
 uint32_t Column::SerializeTo(char *buf) const {
   uint32_t size = 0;
-  MACH_WRITE_UINT32(buf, COLUMN_MAGIC_NUM); //�� ���� д�뵽 ǰ�ߣ����������Ϊ uint32_t ����
+  MACH_WRITE_UINT32(buf, COLUMN_MAGIC_NUM); 
   size += sizeof(uint32_t);
   MACH_WRITE_UINT32(buf+size, name_.length());
   MACH_WRITE_STRING(buf+size+4, name_);
@@ -90,8 +88,7 @@ uint32_t Column::DeserializeFrom(char *buf, Column *&column) {
   ASSERT(magic_num == COLUMN_MAGIC_NUM, "Wrong magic number.");
   size += sizeof(uint32_t);
 
-  uint32_t name_len = MACH_READ_UINT32(buf+size);// ��ȡname�ĳ���len
-  size += 4;
+  uint32_t name_len = MACH_READ_UINT32(buf+size);
   std::string name = new char[name_len];
   uint32_t i = 0;
   for (; i < name_len; ++i) {

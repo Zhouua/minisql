@@ -50,25 +50,20 @@ TableIterator &TableIterator::operator=(const TableIterator &itr) noexcept {
 // ++iter
 TableIterator &TableIterator::operator++() {
   if (*this == table_heap_->End()) {
-    // �����ǰ�������Ѿ�ָ�����ĩβ���򲻽����κβ�����ֱ�ӷ��ص�ǰ��������
     return *this;
   }
 
-  // ��ȡ��ǰԪ������ҳ��
   auto page = reinterpret_cast<TablePage *>(table_heap_->buffer_pool_manager_->FetchPage(current_row_->GetRowId().GetPageId()));
   page->RLatch();
 
-  // ��ȡ��ǰԪ�����һ��Ԫ����б�ʶ
   RowId next_row_id;
   if (page->GetNextTupleRid(current_row_->GetRowId(), &next_row_id)) {
-    // �����ǰҳ������һ��Ԫ�飬���ȡ��һ��Ԫ�鲢���µ�ǰԪ��
     current_row_->destroy();
     current_row_->SetRowId(next_row_id);
     page->GetTuple(current_row_.get(), table_heap_->schema_, txn_, table_heap_->lock_manager_);
     page->RUnlatch();
     table_heap_->buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
   } else {
-    // �����ǰҳ��û����һ��Ԫ�飬���Ի�ȡ��һ��ҳ��ĵ�һ��Ԫ��
     page_id_t next_page_id;
     while ((next_page_id = page->GetNextPageId()) != INVALID_PAGE_ID) {
       page->RUnlatch();
@@ -86,7 +81,6 @@ TableIterator &TableIterator::operator++() {
     }
     page->RUnlatch();
     table_heap_->buffer_pool_manager_->UnpinPage(page->GetPageId(), false);
-    // ����޷��ҵ���һ��ҳ��ĵ�һ��Ԫ�飬��˵���Ѿ��������ĩβ������������Ϊ������������
     *this = table_heap_->End();
   }
 
