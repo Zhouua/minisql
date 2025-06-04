@@ -5,7 +5,7 @@
 #include <mutex>
 #include <unordered_map>
 
-#include "lru_replacer.h"
+#include "buffer/lru_replacer.h"
 #include "page/disk_file_meta_page.h"
 #include "page/page.h"
 #include "storage/disk_manager.h"
@@ -23,6 +23,8 @@ class BufferPoolManager {
   bool UnpinPage(page_id_t page_id, bool is_dirty);
 
   bool FlushPage(page_id_t page_id);
+
+  bool FlushAllPages();
 
   Page *NewPage(page_id_t &page_id);
 

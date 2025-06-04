@@ -20,11 +20,9 @@ std::pair<GenericKey *, RowId> IndexIterator::operator*() {
 }
 
 IndexIterator &IndexIterator::operator++() {
-  // �����ǰҳ��ID��Ч���򷵻ص���������
   if (current_page_id == INVALID_PAGE_ID) {
     return *this;
   }
-  // �����ǰ��Ŀ����С��ҳ���е���Ŀ����һ���������Ŀ����
   if (item_index < page->GetSize() - 1) {
     ++item_index;
   } else {
@@ -32,7 +30,6 @@ IndexIterator &IndexIterator::operator++() {
     buffer_pool_manager->UnpinPage(current_page_id, false);
     current_page_id = next_page_id;
     item_index = 0;
-    // �����һҳ��ID��Ч����ҳ��ָ������Ϊnullptr�������ȡ��һҳ
     if (current_page_id == INVALID_PAGE_ID) {
       page = nullptr;
     } else {
